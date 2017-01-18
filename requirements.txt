@@ -1,14 +1,33 @@
-pyramid>=1.5
-pyramid_debugtoolbar
-simplejson
-cef
-unittest2
-WebTest
-WSGIProxy
-pyramid_hawkauth
-tokenlib
-hawkauthlib
-umemcache
-gunicorn
+# requires
+
+git+https://github.com/return42/konfig@six#egg=konfig             # konfig >= 2.0
+git+https://github.com/return42/tokenlib@six#egg=tokenlib         # tokenlib >= 2.0
+git+https://github.com/return42/hawkauthlib@six#egg=hawkauthlib   # hawkauthlib >= 2.0
+git+https://github.com/return42/pyramid_hawkauth@six#egg=pyramid_hawkauth   # pyramid_hawkauth >= 2.0
+
 gevent
-konfig
+greenlet
+gunicorn
+psutil
+pyramid
+six
+webob
+
+python-memcached
+
+# tests_requires
+
+cornice
+testfixtures
+webtest
+wsgiproxy
+
+# develop
+
+coverage
+nose
+pip
+pylint
+tox
+twine
+wheel

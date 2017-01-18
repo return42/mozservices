@@ -4,6 +4,15 @@
 # file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
+# pylint: disable=C0103
+
+__version__      = "2.0.0rc1"
+__description__  = "Various utilities for Mozilla apps"
+__url__          = "https://github.com/mozilla-services/mozservices"
+__license__      = "MPLv2.0"
+__author__       = 'Mozilla Services'
+__author_email__ = 'services-dev@mozilla.org'
+__keywords__     = 'web pyramid pylons'
 
 import logging
 logger = logging.getLogger("mozsvc")

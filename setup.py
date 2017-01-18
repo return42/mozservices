@@ -1,48 +1,77 @@
-import os
+#!/usr/bin/env python
+# -*- coding: utf-8; mode: python -*-
+
+import re
+import codecs
 from setuptools import setup, find_packages
 
-# Importing this up front prevents a pointless error traceback
-# from being printed after running `python setup.py test.`
-import multiprocessing
+def read_file(fname):
+    with codecs.open(fname, 'r', 'utf-8') as f:
+        return f.read()
 
-here = os.path.abspath(os.path.dirname(__file__))
+def find_meta(meta):
+    """
+    Extract __*meta*__ from META_FILE.
+    """
+    meta_match = re.search(
+        r"^__{meta}__\s*=\s*['\"]([^'\"]*)['\"]".format(meta=meta),
+        META_FILE
+        , re.M )
+    if meta_match:
+        return meta_match.group(1)
+    raise RuntimeError("Unable to find __{meta}__ string.".format(meta=meta))
 
-with open(os.path.join(here, 'README.txt')) as f:
-    README = f.read()
+NAME     = 'mozsvc'
 
-with open(os.path.join(here, 'CHANGES.txt')) as f:
-    CHANGES = f.read()
+REQUIRES = ['gevent'
+            , 'greenlet'
+            , 'gunicorn'
+            , 'psutil'
+            , 'pyramid'
+            , 'six'
+            , 'webob'
+            , 'konfig >= 2.0.0rc1'
+            , 'tokenlib >= 2.0.0rc1'
+            , 'hawkauthlib >= 2.0.0rc1'
+            , 'pyramid_hawkauth >= 2.0.0rc1'
+            # , 'meliae' FIXME: not py3 compliant!
+            , ]
 
-requires = ['pyramid>=1.5', 'simplejson', 'konfig']
+EXTRAS_REQUIRE = { 'memcache': ['python-memcached']}
 
-tests_require = requires + [
-            'pyramid_hawkauth', 'tokenlib', 'hawkauthlib>=0.1.1',
-            'cornice>=0.10', 'wsgiproxy', 'unittest2', 'webtest',
-            'gunicorn', 'gevent', 'testfixtures']
+TESTS_REQUIRES = [ 'cornice'
+                   , 'testfixtures'
+                   , 'webtest'
+                   , 'wsgiproxy'
+                   , ]
 
-extras_require = {
-    'memcache': ['umemcache>=1.3'],
-}
+META_FILE        = read_file('mozsvc/__init__.py')
+LONG_DESCRIPTION = [ read_file(n) for n in ['README.rst', 'CHANGES.txt']]
 
+setup(name                   = NAME
+      , version              = find_meta('version')
+      , description          = find_meta('description')
+      , long_description     = '\n\n'.join(LONG_DESCRIPTION)
+      , url                  = find_meta('url')
+      , author               = find_meta('author')
+      , author_email         = find_meta('author_email')
+      , license              = find_meta('license')
+      , keywords             = find_meta('keywords')
+      , packages             = find_packages()
+      , include_package_data = True
+      , install_requires     = REQUIRES
+      , extras_require       = EXTRAS_REQUIRE
+      # unfortunately test is not supported by pip (only 'setup.py test')
+      , tests_require        = TESTS_REQUIRES
+      , test_suite           = NAME # "pyramid_hawkauth.tests"
+      , zip_safe             = False
+      , classifiers          = [
+          "Programming Language :: Python"
+          , "Framework :: Pylons"
+          , "Topic :: Internet :: WWW/HTTP"
+          , "Topic :: Internet :: WWW/HTTP :: WSGI :: Application"
+          , "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)"
+          # , "Development Status :: 5 - Production/Stable"
+          , ]
+      , )
 
-setup(name='mozsvc',
-      version='0.9',
-      description='Various utilities for Mozilla apps',
-      long_description=README + '\n\n' + CHANGES,
-      classifiers=[
-        "Programming Language :: Python",
-        "Framework :: Pylons",
-        "Topic :: Internet :: WWW/HTTP",
-        "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
-        ],
-      author='Mozilla Services',
-      author_email='services-dev@mozilla.org',
-      url='https://github.com/mozilla-services/mozservices',
-      keywords='web pyramid pylons',
-      packages=find_packages(),
-      include_package_data=True,
-      zip_safe=False,
-      install_requires=requires,
-      extras_require=extras_require,
-      tests_require=tests_require,
-      test_suite="mozsvc.tests")
