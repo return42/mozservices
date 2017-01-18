@@ -5,15 +5,16 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
+
 import json
 import time
 import socket
-import urllib
 import logging
-import urlparse
 import traceback
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+
+from six.moves import urllib
 
 from pyramid.util import DottedNameResolver
 
@@ -81,13 +82,12 @@ def dnslookup(url):
         from gevent.socket import _socket
         gethostbyname = _socket.gethostbyname
     except ImportError:
-        import socket
         gethostbyname = socket.gethostbyname
 
     # parsing
-    parsed_url = urlparse.urlparse(url)
-    host, port = urllib.splitport(parsed_url.netloc)
-    user, host = urllib.splituser(host)
+    parsed_url = urllib.parse.urlparse(url)
+    host, port = urllib.parse.splitport(parsed_url.netloc)
+    user, host = urllib.parse.splituser(host)
 
     # resolving the host
     host = gethostbyname(host)
@@ -100,7 +100,7 @@ def dnslookup(url):
         host = '%s@%s' % (user, host)
 
     parts = [parsed_url[0]] + [host] + list(parsed_url[2:])
-    return urlparse.urlunparse(parts)
+    return urllib.parse.urlunparse(parts)
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -135,7 +135,7 @@ class JsonLogFormatter(logging.Formatter):
         })
         # Include any custom attributes set on the record.
         # These would usually be collected metrics data.
-        for key, value in record.__dict__.iteritems():
+        for key, value in record.__dict__.items():
             if key not in self.DEFAULT_LOGRECORD_ATTRS:
                 details[key] = value
         # Only include the 'message' key if it has useful content

@@ -1,8 +1,9 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
-"""
+# pylint: disable=E0602, W0613
 
+"""
 Classes for the management of auth-token signing secrets.
 
 The classes in this module can be used to obtain a hex-encoded secret key
@@ -19,6 +20,7 @@ The most appropriate choice will depend on operational and security
 requirements.
 
 """
+from __future__ import print_function
 
 import sys
 import csv
@@ -27,9 +29,9 @@ import os
 import time
 import hashlib
 from collections import defaultdict
-
 from tokenlib.utils import HKDF
 
+import six
 
 class Secrets(object):
     """Load node-specific secrets from a file.
@@ -112,7 +114,7 @@ class FixedSecrets(object):
 
     """
     def __init__(self, secrets):
-        if isinstance(secrets, basestring):
+        if isinstance(secrets, six.string_types):
             secrets = secrets.split()
         self._secrets = secrets
 
@@ -140,7 +142,7 @@ class DerivedSecrets(object):
     HKDF_INFO_NODE_SECRET = b"services.mozilla.com/mozsvc/v1/node_secret/"
 
     def __init__(self, master_secrets):
-        if isinstance(master_secrets, basestring):
+        if isinstance(master_secrets, six.string_types):
             master_secrets = master_secrets.split()
         self._master_secrets = master_secrets
 
@@ -178,32 +180,38 @@ def manage(args):
         python -m mozsvc.secrets derive <master_secret> <node_name>
 
     """
+
     def report_usage_error():
-        print>>sys.stderr, "\n".join(manage.__doc__.split("\n")[1:])
+        print("\n".join(manage.__doc__.split("\n")[1:]), file=sys.stderr)
         return 1
 
+    retVal = None
+
     if len(args) < 2:
-        return report_usage_error()
+        retVal = report_usage_error()
 
     if args[1] == "new":
         if len(args) > 3:
-            return report_usage_error()
+            retVal = report_usage_error()
         try:
             size = int(args[2])
         except ValueError:
-            return report_usage_error()
+            retVal = report_usage_error()
         except IndexError:
             size = 32
-        print os.urandom(size).encode('hex')
-        return 0
+        print(os.urandom(size).encode('hex'))
+        retVal =  0
 
     if args[1] == "derive":
         if len(args) != 4:
             return report_usage_error()
-        print DerivedSecrets([args[2]]).get(args[3])[0]
-        return 0
+        print(DerivedSecrets([args[2]]).get(args[3])[0])
+        retVal =  0
 
-    return report_usage_error()
+    if retVal is None:
+        retVal = report_usage_error()
+
+    return retVal
 
 
 if __name__ == "__main__":

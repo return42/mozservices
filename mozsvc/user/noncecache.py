@@ -31,7 +31,7 @@ class MemcachedNonceCache(object):
 
     def __init__(self, window=None, get_time=None, cache_server=None,
                  cache_key_prefix="noncecache:", cache_pool_size=None,
-                 cache_pool_timeout=60, **kwds):
+                 cache_pool_timeout=60, **_kwds):
         # Memcached ttls are in integer seconds, so round up to the nearest.
         if window is None:
             window = DEFAULT_TIMESTAMP_WINDOW
@@ -67,7 +67,7 @@ class MemcachedNonceCache(object):
         # of "create if not exists"
         key = urlsafe_b64encode(sha1("%d:%s" % (timestamp, nonce)).digest())
         try:
-            if not self.mcclient.add(key, 1, time=self.window):
+            if not self.mcclient.add(key, 1, _time=self.window):
                 return False
         except ValueError:
             return False

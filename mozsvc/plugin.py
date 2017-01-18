@@ -83,6 +83,7 @@ def load_and_register(section_name, config, interface=None, registry_name=u""):
         plugin = load_from_config(section_name, settings["config"])
     else:
         plugin = load_from_settings(section_name, settings)
+    # pylint: disable=R0204
     if interface is not None:
         interfaces = [interface]
     else:
@@ -125,7 +126,7 @@ def load_from_settings(section_name, settings):
     """
     kwargs = {}
     prefix = section_name + "."
-    for name, value in settings.iteritems():
+    for name, value in settings.items():
         if name.startswith(prefix):
             kwargs[name[len(prefix):]] = value
     klass = resolve_name(kwargs.pop("backend"))

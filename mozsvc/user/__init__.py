@@ -10,26 +10,24 @@ Utilities for authentication via Mozilla's TokenServer auth system.
 
 """
 
-from zope.interface import implements
+import logging
 
+from zope.interface import implements
 from pyramid.request import Request
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.interfaces import IAuthenticationPolicy
 from pyramid.httpexceptions import HTTPUnauthorized
 
-from pyramid_hawkauth import HawkAuthenticationPolicy
-
 import tokenlib
-
 import mozsvc
 import mozsvc.secrets
 from mozsvc.util import resolve_name
 from mozsvc.user.permissivenoncecache import PermissiveNonceCache
+from pyramid_hawkauth import HawkAuthenticationPolicy
 
-import logging
-logger = logging.getLogger("mozsvc.user")
+import six
 
-
+LOG = logging.getLogger("mozsvc.user")
 ENVIRON_KEY_IDENTITY = "mozsvc.user.identity"
 
 
@@ -99,8 +97,8 @@ class TokenServerAuthenticationPolicy(HawkAuthenticationPolicy):
                     "You probably want to set 'secret' or 'secrets_file' in "
                     "the [hawkauth] section of your configuration"]
             for msg in msgs:
-                mozsvc.logger.warn(msg)
-        elif isinstance(secrets, (basestring, list)):
+                mozsvc.logger.warning(msg)
+        elif isinstance(secrets, (six.string_types, list)):
             secrets = mozsvc.secrets.FixedSecrets(secrets)
         elif isinstance(secrets, dict):
             secrets = resolve_name(secrets.pop("backend"))(**secrets)
@@ -113,7 +111,7 @@ class TokenServerAuthenticationPolicy(HawkAuthenticationPolicy):
     def _parse_settings(cls, settings):
         """Parse settings for an instance of this class."""
         supercls = super(TokenServerAuthenticationPolicy, cls)
-        kwds = supercls._parse_settings(settings)
+        kwds = supercls._parse_settings(settings)  # pylint: disable=W0212
         # collect leftover settings into a config for a Secrets object,
         # wtih some b/w compat for old-style secret-handling settings.
         secrets_prefix = "secrets."
@@ -144,12 +142,12 @@ class TokenServerAuthenticationPolicy(HawkAuthenticationPolicy):
         """
         supercls = super(TokenServerAuthenticationPolicy, self)
         try:
-            return supercls._check_signature(request, key)
+            return supercls._check_signature(request, key)  # pylint: disable=W0212
         except HTTPUnauthorized:
-            logger.warn("Authentication Failed: invalid hawk signature")
+            LOG.warning("Authentication Failed: invalid hawk signature")
             raise
 
-    def decode_hawk_id(self, request, tokenid):
+    def decode_hawk_id(self, request, tokenid):  # pylint: disable=E0202
         """Decode a Hawk token id into its userid and secret key.
 
         This method determines the appropriate secrets to use for the given
@@ -175,11 +173,12 @@ class TokenServerAuthenticationPolicy(HawkAuthenticationPolicy):
             except (ValueError, KeyError):
                 pass
         else:
-            logger.warn("Authentication Failed: invalid hawk id")
+            LOG.warning("Authentication Failed: invalid hawk id")
             raise ValueError("invalid Hawk id")
         return userid, key
 
-    def encode_hawk_id(self, request, userid):
+    def encode_hawk_id(  # pylint: disable=E0202
+            self, request, userid, **data):
         """Encode the given userid into a Hawk id and secret key.
 
         This method is essentially the reverse of decode_hawk_id.  It is

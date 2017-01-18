@@ -4,33 +4,27 @@
 # file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
+# pylint: disable=W0613
+
 """
 Various utilities
 """
-from hashlib import md5
-import traceback
-import random
-import string
-import simplejson as json
 import re
 import os
+import string  # pylint: disable=W0402
+import traceback
+import random
 import logging
-from ConfigParser import NoOptionError
+from configparser import NoOptionError
 
-# Also support the newer "configparser" module, if installed.
-try:
-    import configparser
-except ImportError:
-    pass
-else:
-    NoOptionError = (NoOptionError, configparser.NoOptionError)
-
+from hashlib import md5
+import simplejson as json
 
 random.seed()
 _RE_CODE = re.compile('[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}')
 
 
-def randchar(chars=string.digits + string.letters):
+def randchar(chars=string.digits + string.ascii_letters):
     """Generates a random char using urandom.
 
     If the system does not support it, the function fallbacks on random.choice
@@ -57,7 +51,7 @@ def _resolve_name(name):
         try:
             ret = __import__('.'.join(module_name))
             break
-        except ImportError, exc:
+        except ImportError as exc:
             last_exc = exc
             if cursor == 0:
                 raise
@@ -69,11 +63,13 @@ def _resolve_name(name):
             ret = getattr(ret, part)
         except AttributeError:
             if last_exc is not None:
+                # pylint: disable=E0702
                 raise last_exc
             raise ImportError(name)
 
     if ret is None:
         if last_exc is not None:
+            # pylint: disable=E0702
             raise last_exc
         raise ImportError(name)
 
@@ -104,20 +100,20 @@ class CatchErrorMiddleware(object):
     def __call__(self, environ, start_response):
         try:
             return self.app(environ, start_response)
-        except:
+        except Exception:   # pylint: disable=W0703
             err = traceback.format_exc()
-            hash = create_hash(err)
-            self.logger.error(hash)
+            _hash = create_hash(err)
+            self.logger.error(_hash)
             self.logger.error(err)
             start_response('500 Internal Server Error',
                            [('content-type', self.ctype)])
 
-            response = json.dumps("application error: crash id %s" % hash)
+            response = json.dumps("application error: crash id %s" % _hash)
             if self.hook:
                 try:
-                    response = self.hook({'error': err, 'crash_id': hash,
+                    response = self.hook({'error': err, 'crash_id': _hash,
                                           'environ': environ})
-                except Exception:
+                except Exception:   # pylint: disable=W0703
                     pass
 
             return [response]

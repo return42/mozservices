@@ -15,7 +15,7 @@ from mozsvc.exceptions import BackendError
 from mozsvc.middlewares import create_hash
 
 
-def catch_backend_errors(handler, registry):
+def catch_backend_errors(handler, registry):  # pylint: disable=W0613
     """Tween to turn BackendError into a 503 response.
 
     This is a pyramid tween factory for catching BackendError exceptions
@@ -29,13 +29,13 @@ def catch_backend_errors(handler, registry):
             err_trace = traceback.format_exc()
             try:
                 extra_info = "user: %s" % (request.user,)
-            except Exception:
+            except AttributeError:
                 extra_info = "user: -"
             error_log = "%s\n%s\n%s" % (err_info, err_trace, extra_info)
-            hash = create_hash(error_log)
-            mozsvc.logger.error(hash)
+            _hash = create_hash(error_log)
+            mozsvc.logger.error(_hash)
             mozsvc.logger.error(error_log)
-            msg = json.dumps("application error: crash id %s" % hash)
+            msg = json.dumps("application error: crash id %s" % _hash)
             if err.retry_after is not None:
                 if err.retry_after == 0:
                     retry_after = None
@@ -51,7 +51,7 @@ def catch_backend_errors(handler, registry):
     return catch_backend_errors_tween
 
 
-def log_uncaught_exceptions(handler, registry):
+def log_uncaught_exceptions(handler, registry):  # pylint: disable=W0613
     """Tween to log all uncaught exceptions."""
 
     def log_uncaught_exceptions_tween(request):
@@ -69,17 +69,17 @@ def log_uncaught_exceptions(handler, registry):
     return log_uncaught_exceptions_tween
 
 
-def fuzz_backoff_headers(handler, registry):
+def fuzz_backoff_headers(handler, registry):  # pylint: disable=W0613
     """Add some random fuzzing to the value of various backoff headers.
 
     This can help to avoid a "dogpile" effect where all backed-off clients
     retry at the same time and overload the server.
     """
 
-    HEADERS = ["Retry-After", "X-Backoff", "X-Weave-Backoff"]
+    _HEADERS = ["Retry-After", "X-Backoff", "X-Weave-Backoff"]
 
     def fuzz_response(response):
-        for header in HEADERS:
+        for header in _HEADERS:
             value = response.headers.get(header)
             if value is not None:
                 # The header value is a backoff duration in seconds.  Fuzz
@@ -92,7 +92,7 @@ def fuzz_backoff_headers(handler, registry):
     def fuzz_backoff_headers_tween(request):
         try:
             response = handler(request)
-        except HTTPException, response:
+        except HTTPException as response:
             fuzz_response(response)
             raise
         else:
@@ -130,7 +130,7 @@ def send_backoff_responses(handler, registry):
         def send_backoff_header_tween(request, handler=handler):
             try:
                 response = handler(request)
-            except HTTPException, response:
+            except HTTPException as response:
                 if random.random() < backoff_probability:
                     add_backoff_header(response)
                 raise

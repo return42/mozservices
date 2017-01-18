@@ -4,6 +4,7 @@
 # file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
+# pylint: disable=C0103,W0613
 """
 Custom gevent-based worker class for gunicorn.
 
@@ -15,10 +16,13 @@ import os
 import gc
 import sys
 import time
-import thread
 import signal
 import logging
 import traceback
+try:
+    import thread
+except ImportError:
+    import _thread as thread
 
 import greenlet
 import gevent.hub
@@ -50,7 +54,7 @@ if MAX_MEMORY_USAGE:
         MAX_MEMORY_USAGE = MAX_MEMORY_USAGE[:-1]
     MAX_MEMORY_USAGE = int(MAX_MEMORY_USAGE) * 1024
     # How frequently to check memory usage, in seconds.
-    MEMORY_USAGE_CHECK_INTERVAL = 2
+    MEMORY_USAGE_CHECK_INTERVAL = float(2)
     # If a gc brings us back below this threshold, we can avoid termination.
     MEMORY_USAGE_RECOVERY_THRESHOLD = MAX_MEMORY_USAGE * 0.8
 
@@ -86,6 +90,7 @@ class MozSvcGeventWorker(GeventWorker):
     """
 
     def init_process(self):
+        # pylint: disable=W0201
         # Check if we need a background thread to monitor memory use.
         needs_monitoring_thread = False
         if MAX_MEMORY_USAGE:
@@ -102,7 +107,7 @@ class MozSvcGeventWorker(GeventWorker):
             # Set up a trace function to record each greenlet switch.
             self._active_greenlet = None
             self._greenlet_switch_counter = 0
-            greenlet.settrace(self._greenlet_switch_tracer)
+            greenlet.settrace(self._greenlet_switch_tracer) # pylint: disable=E1101
             self._main_thread_id = _real_get_ident()
             needs_monitoring_thread = True
 
@@ -133,7 +138,7 @@ class MozSvcGeventWorker(GeventWorker):
         with gevent.Timeout(self.cfg.timeout):
             return super(MozSvcGeventWorker, self).handle_request(*args)
 
-    def _greenlet_switch_tracer(self, what, (origin, target)):
+    def _greenlet_switch_tracer(self, what, args):
         """Callback method executed on every greenlet switch.
 
         The worker arranges for this method to be called on every greenlet
@@ -143,7 +148,8 @@ class MozSvcGeventWorker(GeventWorker):
         # Increment the counter to indicate that a switch took place.
         # This will periodically be reset to zero by the monitoring thread,
         # so we don't need to worry about it growing without bound.
-        self._active_greenlet = target
+        (_origin, target) = args
+        self._active_greenlet = target  # pylint: disable=W0201
         self._greenlet_switch_counter += 1
 
     def _process_monitoring_thread(self):
@@ -157,19 +163,18 @@ class MozSvcGeventWorker(GeventWorker):
 
         """
         # Find the minimum interval between checks.
+        sleep_interval = MAX_BLOCKING_TIME
         if MAX_MEMORY_USAGE:
             sleep_interval = MEMORY_USAGE_CHECK_INTERVAL
             if MAX_BLOCKING_TIME and MAX_BLOCKING_TIME < sleep_interval:
                 sleep_interval = MAX_BLOCKING_TIME
-        else:
-            sleep_interval = MAX_BLOCKING_TIME
         # Run the checks in an infinite sleeping loop.
         try:
             while True:
                 _real_sleep(sleep_interval)
                 self._check_greenlet_blocking()
                 self._check_memory_usage()
-        except Exception:
+        except Exception:  # pylint: disable=W0703
             # Swallow any exceptions raised during interpreter shutdown.
             # Daemonic Thread objects have this same behaviour.
             if sys is not None:
@@ -186,6 +191,7 @@ class MozSvcGeventWorker(GeventWorker):
             active_greenlet = self._active_greenlet
             # The hub gets a free pass, since it blocks waiting for IO.
             if active_greenlet not in (None, self._active_hub):
+                # pylint: disable=W0212
                 frame = sys._current_frames()[self._main_thread_id]
                 stack = traceback.format_stack(frame)
                 err_log = ["Greenlet appears to be blocked\n"] + stack
@@ -193,7 +199,7 @@ class MozSvcGeventWorker(GeventWorker):
         # Reset the count to zero.
         # This might race with it being incremented in the main thread,
         # but not often enough to cause a false positive.
-        self._greenlet_switch_counter = 0
+        self._greenlet_switch_counter = 0  # pylint: disable=W0201
 
     def _check_memory_usage(self):
         if not MAX_MEMORY_USAGE:
@@ -209,10 +215,10 @@ class MozSvcGeventWorker(GeventWorker):
                 mem_usage = psutil.Process().memory_info().rss
                 if mem_usage > MEMORY_USAGE_RECOVERY_THRESHOLD:
                     # Didn't clean up enough, we'll have to terminate.
-                    logger.warn("memory usage %d > %d after gc, quitting",
-                                mem_usage, MAX_MEMORY_USAGE)
+                    logger.warning("memory usage %d > %d after gc, quitting",
+                                   mem_usage, MAX_MEMORY_USAGE)
                     self.alive = False
-            self._last_memory_check_time = time.time()
+            self._last_memory_check_time = time.time() # pylint: disable=W0201
 
     def _dump_memory_usage(self, *args):
         """Dump memory usage data to a file.
@@ -225,13 +231,18 @@ class MozSvcGeventWorker(GeventWorker):
         If the "meliae" package is not installed or if an error occurs during
         processing, then the file "mozsvc-memdump.error.<pid>.<timestamp>"
         will be written with a traceback of the error.
+
+        FIXME:
+
+          meliae is not python 3 compliant!
         """
         now = int(time.time())
         try:
             filename = "%s.%d.%d" % (MEMORY_DUMP_FILE, os.getpid(), now)
-            from meliae import scanner
+            # FIXME: meliae is not python 3 compliant!
+            from meliae import scanner  # pylint: disable=E0401
             scanner.dump_all_objects(filename)
-        except Exception:
+        except Exception:  # pylint: disable=W0703
             filename = "%s.error.%d.%d" % (MEMORY_DUMP_FILE, os.getpid(), now)
             with open(filename, "w") as f:
                 f.write("ERROR DUMPING MEMORY USAGE\n\n")

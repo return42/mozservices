@@ -15,18 +15,13 @@ import logging
 import warnings
 import traceback
 import contextlib
-import Queue
-try:
-    import simplejson as json
-except ImportError:
-    import json
-
-import umemcache
+import json
+import memcache
+import six
 
 from mozsvc.exceptions import BackendError
 
-
-logger = logging.getLogger("mozsvc.storage.mcclient")
+LOG = logging.getLogger("mozsvc.storage.mcclient")
 
 DEFAULT_MAX_KEY_SIZE = 250
 DEFAULT_MAX_VALUE_SIZE = 20 * 1024 * 1024
@@ -54,7 +49,7 @@ class MemcachedClient(object):
             warnings.warn(msg, DeprecationWarning, stacklevel=1)
             if server is None:
                 server = kwds.pop("servers")
-                if not isinstance(server, basestring):
+                if not isinstance(server, six.string_types):
                     server = server[0]
         if server is None:
             server = "127.0.0.1:11211"
@@ -75,13 +70,13 @@ class MemcachedClient(object):
                 # disconnect so that it will be removed from the pool.
                 try:
                     yield mc
-                except (EnvironmentError, RuntimeError), err:
+                except (EnvironmentError, RuntimeError) as err:
                     if mc is not None:
                         mc.disconnect()
                     raise
-        except (EnvironmentError, RuntimeError), err:
+        except (EnvironmentError, RuntimeError) as err:
             err = traceback.format_exc()
-            logger.error(err)
+            LOG.error(err)
             raise BackendError(str(err))
 
     def _encode_key(self, key):
@@ -117,7 +112,7 @@ class MemcachedClient(object):
             raise ValueError("value too long")
         return value, 0
 
-    def _decode_value(self, value, flags):
+    def _decode_value(self, value, _flags):
         """Decode a storage-level value into the form expected by the app.
 
         This method takes the encoded value and any flag bits that were
@@ -155,43 +150,43 @@ class MemcachedClient(object):
             encoded_keys = [self._encode_key(key) for key in keys]
             encoded_items = mc.get_multi(encoded_keys)
         items = {}
-        for key, res in encoded_items.iteritems():
+        for key, res in encoded_items.items():
             assert res is not None
             data, flags = res
             items[self._decode_key(key)] = self._decode_value(data, flags)
         return items
 
-    def set(self, key, value, time=0):
+    def set(self, key, value, _time=0):
         """Set the value stored under the given key."""
         key = self._encode_key(key)
         data, flags = self._encode_value(value)
         with self._connect() as mc:
-            res = mc.set(key, data, time, flags)
+            res = mc.set(key, data, _time, flags)
         if res != "STORED":
             return False
         return True
 
-    def add(self, key, value, time=0):
+    def add(self, key, value, _time=0):
         """Add the given key to memcached if not already present."""
         key = self._encode_key(key)
         data, flags = self._encode_value(value)
         with self._connect() as mc:
-            res = mc.add(key, data, time, flags)
+            res = mc.add(key, data, _time, flags)
         if res != "STORED":
             return False
         return True
 
-    def replace(self, key, value, time=0):
+    def replace(self, key, value, _time=0):
         """Replace the given key in memcached if it is already present."""
         key = self._encode_key(key)
         data, flags = self._encode_value(value)
         with self._connect() as mc:
-            res = mc.replace(key, data, time, flags)
+            res = mc.replace(key, data, _time, flags)
         if res != "STORED":
             return False
         return True
 
-    def cas(self, key, value, casid, time=0):
+    def cas(self, key, value, casid, _time=0):
         """Set the value stored under the given key if casid matches."""
         key = self._encode_key(key)
         data, flags = self._encode_value(value)
@@ -199,9 +194,9 @@ class MemcachedClient(object):
             # Memcached's CAS only works properly on existing keys.
             # Fortunately ADD has the same semantics for missing keys.
             if casid is None:
-                res = mc.add(key, data, time, flags)
+                res = mc.add(key, data, _time, flags)
             else:
-                res = mc.cas(key, data, casid, time, flags)
+                res = mc.cas(key, data, casid, _time, flags)
         if res != "STORED":
             return False
         return True
@@ -219,13 +214,13 @@ class MemcachedClient(object):
 # Sentinel used to mark an empty slot in the MCClientPool queue.
 # Using sys.maxint as the timestamp ensures that empty slots will always
 # sort *after* live connection objects in the queue.
-EMPTY_SLOT = (sys.maxint, None)
+EMPTY_SLOT = (sys.maxsize, None)
 
 
 class MCClientPool(object):
-    """Pool of umemcache.Client objects, with periodic purging of connections.
+    """Pool of memcache.Client objects, with periodic purging of connections.
 
-    This class implements a simple pool of umemcache Client objects, with
+    This class implements a simple pool of memcache Client objects, with
     periodically closing and refreshing of the pooled Client objects.  This
     seems to work around some occasional hangs that were occurring with
     long-lived clients.
@@ -247,16 +242,16 @@ class MCClientPool(object):
         self.server = server
         self.maxsize = maxsize
         self.timeout = timeout
-        # Use a synchronized Queue class to hold the active client objects.
+        # Use a synchronized queue class to hold the active client objects.
         # It will contain tuples (connection_timestamp, client).
         # Using a PriorityQueue ensures that the oldest connection is always
         # used first, allowing them to be closed out when stale.  It also means
         # that a no-maxsize pool can grow and shink according to demand, as old
         # connections are expired and not replaced.
-        self.clients = Queue.PriorityQueue(maxsize)
+        self.clients = six.moves.queue.PriorityQueue(maxsize)
         # If there is a maxsize, prime the queue with empty slots.
         if maxsize is not None:
-            for _ in xrange(maxsize):
+            for _ in six.moves.range(maxsize):
                 self.clients.put(EMPTY_SLOT)
 
     @contextlib.contextmanager
@@ -270,7 +265,7 @@ class MCClientPool(object):
 
     def _create_client(self):
         """Create a new Client object."""
-        client = umemcache.Client(self.server)
+        client = memcache.Client(self.server)
         client.connect()
         return client
 
@@ -287,7 +282,7 @@ class MCClientPool(object):
         while True:
             try:
                 ts, client = self.clients.get(blocking)
-            except Queue.Empty:
+            except six.moves.queue.Empty:
                 # No maxsize and no free connections, create a new one.
                 # XXX TODO: we should be using a monotonic clock here.
                 now = int(time.time())
@@ -306,14 +301,14 @@ class MCClientPool(object):
                 self.clients.put(EMPTY_SLOT)
                 continue
 
-    def _checkin_client(self, ts, client):
+    def _checkin_client(self, time_stamp, client):
         """Return a Client object to the pool."""
         # If the connection is now stale, don't return it to the pool.
         # Push an empty slot instead so that it will be refreshed when needed.
         if client.is_connected():
             now = int(time.time())
-            if ts + self.timeout > now:
-                self.clients.put((ts, client))
+            if time_stamp + self.timeout > now:
+                self.clients.put((time_stamp, client))
             else:
                 if self.maxsize is not None:
                     self.clients.put(EMPTY_SLOT)

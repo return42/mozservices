@@ -6,7 +6,7 @@
 # ***** END LICENSE BLOCK *****
 """ Exceptions
 """
-from ConfigParser import Error
+from configparser import Error
 
 
 class BackendError(Exception):
@@ -23,6 +23,7 @@ class BackendError(Exception):
           as __str__() will be called on it.
 
         """
+        super(BackendError, self).__init__()
         self.msg = msg
         self.server = server
         self.retry_after = retry_after
@@ -79,14 +80,15 @@ class MethodNotFoundError(Error):
     pass
 
 
-""" 400 error codes
-
-Warning
-
-  If you add a constant here, please update
-  https://hg.mozilla.org/services/docs/file/tip/source/respcodes.rst
-  which is used to generate http://docs.services.mozilla.com/respcodes.html
-"""
+# ---------------
+# 400 error codes
+# ---------------
+#
+# Warning
+#
+#   If you add a constant here, please update
+#   https://hg.mozilla.org/services/docs/file/tip/source/respcodes.rst
+#   which is used to generate http://docs.services.mozilla.com/respcodes.html
 
 ERROR_ILLEGAL_METHOD = 1            # Illegal method/protocol
 ERROR_INVALID_CAPTCHA = 2           # Incorrect/missing captcha

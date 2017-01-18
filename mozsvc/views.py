@@ -10,5 +10,5 @@ from pyramid.view import view_config
 
 
 @view_config(route_name='heartbeat', renderer='string')
-def hearbeat(request):
+def hearbeat(request): # pylint: disable=W0613
     return 'OK'

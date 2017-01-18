@@ -1,12 +1,14 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
+# pylint: disable=R0914,R0912
 
-from webob import Response
-import urllib2
 import socket
 import base64
-from urlparse import urlparse, urlunparse
+from webob import Response
+
+import six
+from six.moves import urllib
 
 
 def get_url(url, method='GET', data=None, user=None, password=None, timeout=5,
@@ -36,14 +38,14 @@ def get_url(url, method='GET', data=None, user=None, password=None, timeout=5,
     Returns:
         - tuple : status code, headers, body
     """
-    if isinstance(password, unicode):
+    if isinstance(password, six.text_type):
         password = password.encode('utf-8')
 
-    req = urllib2.Request(url, data=data)
+    req = urllib.request.Request(url, data=data)
     req.get_method = lambda: method
 
     if user is not None and password is not None:
-        auth = base64.encodestring('%s:%s' % (user, password))
+        auth = base64.b64encode(b'%s:%s' % (user, password))
         req.add_header("Authorization", "Basic %s" % auth.strip())
 
     if extra_headers is not None:
@@ -51,8 +53,8 @@ def get_url(url, method='GET', data=None, user=None, password=None, timeout=5,
             req.add_header(name, value)
 
     try:
-        res = urllib2.urlopen(req, timeout=timeout)
-    except urllib2.HTTPError, e:
+        res = urllib.request.urlopen(req, timeout=timeout)
+    except urllib.error.HTTPError as  e:
         if hasattr(e, 'headers'):
             headers = dict(e.headers)
         else:
@@ -65,7 +67,7 @@ def get_url(url, method='GET', data=None, user=None, password=None, timeout=5,
 
         return e.code, headers, body
 
-    except urllib2.URLError, e:
+    except urllib.error.URLError as e:
         if isinstance(e.reason, socket.timeout):
             return 504, {}, str(e)
         return 502, {}, str(e)
@@ -84,12 +86,12 @@ def proxy(request, scheme, netloc, timeout=5):
     - scheme: http or https
     - netloc: proxy location
     """
-    parsed = urlparse(request.url)
+    parsed = urllib.parse.urlparse(request.url)
     path = parsed.path
     params = parsed.params
     query = parsed.query
     fragment = parsed.fragment
-    url = urlunparse((scheme, netloc, path, params, query, fragment))
+    url = urllib.parse.urlunparse((scheme, netloc, path, params, query, fragment))
     method = request.method
     data = request.body
 
@@ -104,6 +106,7 @@ def proxy(request, scheme, netloc, timeout=5):
         xheaders['X-Forwarded-For'] = request.remote_addr
 
     if hasattr(request, '_authorization'):
+        # pylint: disable=W0212
         xheaders['Authorization'] = request._authorization
 
     status, headers, body = get_url(url, method, data, timeout=timeout,

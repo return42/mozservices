@@ -11,7 +11,7 @@ import time
 import logging
 
 
-logger = logging.getLogger("mozsvc.user")
+LOG = logging.getLogger("mozsvc.user")
 
 
 class PermissiveNonceCache(object):
@@ -30,10 +30,10 @@ class PermissiveNonceCache(object):
     def __len__(self):
         raise NotImplementedError
 
-    def check_nonce(self, timestamp, nonce):
+    def check_nonce(self, timestamp, nonce):   # pylint: disable=W0613
         """Check if the given timestamp+nonce is fresh."""
         now = self.get_time()
         skew = now - timestamp
         if abs(skew) > self.log_window:
-            logger.warn("Large timestamp skew detected: %d", skew)
+            LOG.warning("Large timestamp skew detected: %d", skew)
         return True

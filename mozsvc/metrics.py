@@ -24,12 +24,12 @@ import pyramid.threadlocal
 from pyramid.events import NewRequest
 
 
-logger = logging.getLogger("mozsvc.metrics")
+logger = logging.getLogger("mozsvc.metrics") # pylint: disable=C0103
 
 COMMA_SEPARATED = re.compile(r"\s*,\s*")
 
 
-def initialize_request_metrics(request, defaults={}):
+def initialize_request_metrics(request, defaults=None):
     """Request callback to add a "metrics" dict.
 
     This function should be invoked upon each new request.  It will create
@@ -37,6 +37,8 @@ def initialize_request_metrics(request, defaults={}):
     logging or metrics data, and will add response callbacks to log the
     contents of this dict once the request is complete.
     """
+    if defaults is None:
+        defaults = {}
     # Create the request.metrics dict.
     request.metrics = defaults.copy()
     # Add in some basic information about the request
@@ -126,7 +128,7 @@ def annotate_request(request, key, value):
             pass
 
 
-class metrics_timer(object):
+class metrics_timer(object):   # pylint: disable=C0103
     """Decorator/context-manager to transparently time chunks of code.
 
     This class produces a timing decorator/context-manager that will place
@@ -152,6 +154,7 @@ class metrics_timer(object):
     def __init__(self, key, request=None):
         self.key = key
         self._request = request
+        self.start_time = None
 
     def annotate_request(self, value, key=None, request=None):
         if key is None:
