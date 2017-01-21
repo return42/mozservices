@@ -35,11 +35,20 @@ build: $(ENV)
 
 PHONY += lint
 lint: $(ENV)
-	$(ENV_BIN)/pylint $(PYOBJECTS) --rcfile pylintrc --ignore tests
+	$(ENV_BIN)/pylint $(PYOBJECTS) --rcfile pylintrc
 
 PHONY += test
 test:  $(ENV)
 	$(ENV_BIN)/tox
+
+# set breakpoint with:
+#    DEBUG()
+# e.g. to run tests in debug mode in emacs use:
+#   'M-x pdb' ... 'make debug'
+
+PHONY += debug
+debug: build
+	DEBUG=1 $(ENV_BIN)/nosetests -vx mozsvc/tests
 
 $(ENV):
 	$(VIRTUALENV) $(VTENV_OPTS) $(ENV)
