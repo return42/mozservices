@@ -58,13 +58,16 @@ class Secrets(object):
             filename = [filename]
 
         for name in filename:
-            with open(name, 'rb') as f:
+            _x = 'r'
+            if six.PY2:
+                _x = 'rb'
+            with open(name, _x) as f:
 
                 reader = csv.reader(f, delimiter=',')
                 for line, row in enumerate(reader):
                     if len(row) < 2:
                         continue
-                    node = row[0]
+                    node = six.b(row[0])
                     if node in self._secrets:
                         raise ValueError("Duplicate node line %d" % line)
                     secrets = []
@@ -72,24 +75,26 @@ class Secrets(object):
                         secret = secret.split(':')
                         if len(secret) != 2:
                             raise ValueError("Invalid secret line %d" % line)
-                        secrets.append(tuple(secret))
+                        secrets.append(tuple([ six.b(_x) for _x in secret]))
                     secrets.sort()
                     self._secrets[node] = secrets
 
     def save(self, filename):
-        with open(filename, 'wb') as f:
+        _x = 'w'
+        if six.PY2:
+            _x = 'wb'
+        with open(filename, _x) as f:
             writer = csv.writer(f, delimiter=',')
             for node, secrets in self._secrets.items():
-                secrets = ['%s:%s' % (timestamp, secret)
-                           for timestamp, secret in secrets]
-                secrets.insert(0, node)
+                secrets = [ '%s:%s' % (ts.decode(), s.decode()) for ts, s in secrets]
+                secrets.insert(0, node.decode())
                 writer.writerow(secrets)
 
     def get(self, node):
         return [secret for timestamp, secret in self._secrets[node]]
 
     def add(self, node, size=256):
-        timestamp = str(int(time.time()))
+        timestamp = six.b(str(int(time.time())))
         secret = binascii.b2a_hex(os.urandom(size))[:size]
         # The new secret *must* sort at the end of the list.
         # This forbids you from adding multiple secrets per second.
@@ -156,7 +161,7 @@ class DerivedSecrets(object):
         for master_secret in self._master_secrets:
             # We want each hex-encoded derived secret to be the same
             # size as its (presumably hex-encoded) master secret.
-            size = len(master_secret) / 2
+            size = int(len(master_secret) / 2)
             node_secret = HKDF(master_secret, size=size, **hkdf_params)
             node_secrets.append(binascii.b2a_hex(node_secret))
         return node_secrets

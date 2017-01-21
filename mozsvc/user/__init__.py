@@ -12,7 +12,7 @@ Utilities for authentication via Mozilla's TokenServer auth system.
 
 import logging
 
-from zope.interface import implements
+from zope.interface import implementer
 from pyramid.request import Request
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.interfaces import IAuthenticationPolicy
@@ -46,6 +46,7 @@ class RequestWithUser(Request):
     """
 
     def _get_user(self):
+        # pylint: disable=E1101
         # Return an existing identity if there is one.
         user = self.environ.get(ENVIRON_KEY_IDENTITY)
         if user is not None:
@@ -65,11 +66,11 @@ class RequestWithUser(Request):
         return user
 
     def _set_user(self, user):
-        self.environ["mozsvc.user.identity"] = user
+        self.environ["mozsvc.user.identity"] = user # pylint: disable=E1101
 
     user = property(_get_user, _set_user)
 
-
+@implementer(IAuthenticationPolicy)
 class TokenServerAuthenticationPolicy(HawkAuthenticationPolicy):
     """Pyramid authentication policy for use with Tokenserver auth tokens.
 
@@ -83,8 +84,6 @@ class TokenServerAuthenticationPolicy(HawkAuthenticationPolicy):
     node hostnames to secrets (via the argument 'secrets_file').  The
     two arguments are mutually exclusive.
     """
-
-    implements(IAuthenticationPolicy)
 
     def __init__(self, secrets=None, **kwds):
         if not secrets:
@@ -124,7 +123,7 @@ class TokenServerAuthenticationPolicy(HawkAuthenticationPolicy):
         elif "secret" in settings:
             secrets["backend"] = "mozsvc.secrets.FixedSecrets"
             secrets["secrets"] = settings.pop("secret")
-        for name in settings.keys():
+        for name in list(settings.keys()):
             if name.startswith(secrets_prefix):
                 secrets[name[len(secrets_prefix):]] = settings.pop(name)
         kwds['secrets'] = secrets

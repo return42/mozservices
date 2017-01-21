@@ -12,6 +12,8 @@ import math
 from hashlib import sha1
 from base64 import urlsafe_b64encode
 
+import six
+
 from mozsvc.storage.mcclient import MemcachedClient
 
 
@@ -30,7 +32,7 @@ class MemcachedNonceCache(object):
     """
 
     def __init__(self, window=None, get_time=None, cache_server=None,
-                 cache_key_prefix="noncecache:", cache_pool_size=None,
+                 cache_key_prefix=b"noncecache:", cache_pool_size=0,
                  cache_pool_timeout=60, **_kwds):
         # Memcached ttls are in integer seconds, so round up to the nearest.
         if window is None:
@@ -65,7 +67,7 @@ class MemcachedNonceCache(object):
         # Check if it's in memcached, adding it if not.
         # Fortunately memcached 'add' has precisely the right semantics
         # of "create if not exists"
-        key = urlsafe_b64encode(sha1("%d:%s" % (timestamp, nonce)).digest())
+        key = urlsafe_b64encode(sha1(six.b("%d:%s" % (timestamp, nonce))).digest())
         try:
             if not self.mcclient.add(key, 1, _time=self.window):
                 return False

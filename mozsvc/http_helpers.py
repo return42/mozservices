@@ -61,21 +61,21 @@ def get_url(url, method='GET', data=None, user=None, password=None, timeout=5,
             headers = {}
 
         if hasattr(e, 'read'):
-            body = e.read()
+            body = six.b(e.read())
         else:
-            body = ''
+            body = b''
 
         return e.code, headers, body
 
     except urllib.error.URLError as e:
         if isinstance(e.reason, socket.timeout):
-            return 504, {}, str(e)
-        return 502, {}, str(e)
+            return 504, {}, six.b(str(e))
+        return 502, {}, six.b(str(e))
 
     if get_body:
         body = res.read()
     else:
-        body = ''
+        body = b''
 
     return res.getcode(), dict(res.headers), body
 
@@ -111,5 +111,4 @@ def proxy(request, scheme, netloc, timeout=5):
 
     status, headers, body = get_url(url, method, data, timeout=timeout,
                                     extra_headers=xheaders)
-
-    return Response(body, status, headers.items())
+    return Response(body, status, list(headers.items()), charset='UTF-8')

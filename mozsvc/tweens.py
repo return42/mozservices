@@ -46,7 +46,8 @@ def catch_backend_errors(handler, registry):  # pylint: disable=W0613
                 retry_after = settings.get("mozsvc.retry_after", 1800)
 
             return HTTPServiceUnavailable(body=msg, retry_after=retry_after,
-                                          content_type="application/json")
+                                          content_type="application/json",
+                                          charset='utf-8')
 
     return catch_backend_errors_tween
 
@@ -149,7 +150,8 @@ def send_backoff_responses(handler, registry):
             if random.random() < unavailable_probability:
                 return HTTPServiceUnavailable(body="0",
                                               retry_after=retry_after,
-                                              content_type="application/json")
+                                              content_type="application/json",
+                                              charset='utf-8')
             return handler(request)
 
         handler = send_unavailable_response_tween
