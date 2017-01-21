@@ -1,13 +1,14 @@
 
-import time
-import unittest2
+# pylint: disable=W1505,W0612,W0613,C0103
 
-from pyramid.request import Request, Response
-from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden
+import time
+import unittest
 
 from webtest import TestApp
 from testfixtures import LogCapture
 import pyramid.testing
+from pyramid.request import Request, Response
+from pyramid.httpexceptions import HTTPNotFound, HTTPForbidden
 
 from mozsvc.metrics import metrics_timer, initialize_request_metrics
 
@@ -15,7 +16,7 @@ from cornice import Service
 from cornice.pyramidhook import register_service_views
 
 
-class TestMetrics(unittest2.TestCase):
+class TestMetrics(unittest.TestCase):
 
     def setUp(self):
         self.logs = LogCapture()
@@ -25,8 +26,7 @@ class TestMetrics(unittest2.TestCase):
 
     def test_service_metrics(self):
         stub_service = Service(name="stub", path="/stub")
-
-        @stub_service.get()
+        @stub_service.get()  # pylint: disable=E1101
         @metrics_timer("view_time")
         def stub_view(request):
             request.metrics["stub"] = "stub-a-dub-dub"
@@ -38,7 +38,7 @@ class TestMetrics(unittest2.TestCase):
             register_service_views(config, stub_service)
             app = TestApp(config.make_wsgi_app())
             res = app.get("/stub")
-            self.assertEquals(res.body, "{}")
+            self.assertEquals(res.body, b"{}")
 
         self.assertTrue(len(self.logs.records), 1)
         r = self.logs.records[0]
@@ -59,8 +59,7 @@ class TestMetrics(unittest2.TestCase):
         initialize_request_metrics(request)
         with pyramid.testing.testConfig(request=request):
             viewit(request)
-
-        ts = request.metrics["timer1"]
+        ts = request.metrics["timer1"]  # pylint: disable=E1101
         self.assertTrue(0.01 < ts < 0.1)
 
     def test_timing_contextmanager(self):
@@ -74,7 +73,7 @@ class TestMetrics(unittest2.TestCase):
         with pyramid.testing.testConfig(request=request):
             viewit(request)
 
-        ts = request.metrics["timer1"]
+        ts = request.metrics["timer1"]  # pylint: disable=E1101
         self.assertTrue(0.01 < ts < 0.1)
 
     def test_timing_contextmanager_with_explicit_request_object(self):
@@ -87,7 +86,7 @@ class TestMetrics(unittest2.TestCase):
         initialize_request_metrics(request)
         viewit(request)
 
-        ts = request.metrics["timer1"]
+        ts = request.metrics["timer1"]  # pylint: disable=E1101
         self.assertTrue(0.01 < ts < 0.1)
 
     def test_timing_contextmanager_doesnt_fail_if_no_metrics_dict(self):
@@ -109,7 +108,7 @@ class TestMetrics(unittest2.TestCase):
     def test_that_service_metrics_include_correct_response_codes(self):
         stub_service = Service(name="stub", path="/{what}")
 
-        @stub_service.get()
+        @stub_service.get()  # pylint: disable=E1101
         def stub_view(request):
             what = request.matchdict["what"]
             if what == "ok":

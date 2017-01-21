@@ -1,15 +1,17 @@
 
+# pylint: disable=W1505,W0612,W0613
+
 import os
 import json
 import logging
-import unittest2
+import unittest
 
 from testfixtures import LogCapture
 
 from mozsvc.util import JsonLogFormatter
 
 
-class TestJsonLogFormatter(unittest2.TestCase):
+class TestJsonLogFormatter(unittest.TestCase):
 
     def setUp(self):
         self.handler = LogCapture()
@@ -45,7 +47,7 @@ class TestJsonLogFormatter(unittest2.TestCase):
     def test_logging_error_tracebacks(self):
         try:
             raise ValueError("\n")
-        except Exception:
+        except ValueError:
             logging.exception("there was an error")
         self.assertEquals(len(self.handler.records), 1)
         details = json.loads(self.formatter.format(self.handler.records[0]))
@@ -53,4 +55,4 @@ class TestJsonLogFormatter(unittest2.TestCase):
         self.assertEquals(details["error"], "ValueError('\\n',)")
         tblines = details["traceback"].strip().split("\n")
         self.assertEquals(tblines[-1], details["error"])
-        self.assertEquals(tblines[-2], "<type 'exceptions.ValueError'>")
+        self.assertTrue("ValueError" in tblines[-2])

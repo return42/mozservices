@@ -1,8 +1,12 @@
+
+# pylint: disable=W1505,W0612,W0613,C0103,E0239
+
 import unittest
-from StringIO import StringIO
+
 from textwrap import dedent
 
-from zope.interface import Interface, implements
+from six import StringIO
+from zope.interface import Interface, implementer
 from zope.interface.verify import verifyObject
 
 from pyramid.config import Configurator, ConfigurationConflictError
@@ -21,25 +25,23 @@ class ITest2(Interface):
     pass
 
 
+@implementer(ITest1)
 class Test1(object):
     """A concrete implementation of ITest1."""
-    implements(ITest1)
 
     def __init__(self, **kwds):
         self.kwds = kwds
 
-
+@implementer(ITest2)
 class Test2(object):
     """A concrete implementation of ITest2."""
-    implements(ITest2)
 
     def __init__(self, **kwds):
         self.kwds = kwds
 
-
+@implementer(ITest1, ITest2)
 class Test1And2(object):
     """A concrete implementation of both ITest1 and ITest2."""
-    implements(ITest1, ITest2)
 
     def __init__(self, **kwds):
         self.kwds = kwds
@@ -48,6 +50,7 @@ class Test1And2(object):
 class TestPluginLoading(unittest.TestCase):
 
     def test_loading_from_config(self):
+        # pylint: disable=R0204
         config = Config(StringIO(dedent("""
         [test1]
         backend = mozsvc.tests.test_plugin.Test1

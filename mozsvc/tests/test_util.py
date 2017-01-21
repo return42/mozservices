@@ -7,6 +7,8 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
+# pylint: disable=W1505,W0612,W0613,C0103
+
 import unittest
 import os.path
 

@@ -5,11 +5,13 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
+# pylint: disable=W1505,W0612,W0613,C0103,W0104,W0622,R0915
+
 import time
-import unittest2
+import unittest
 import tempfile
 
-from zope.interface import implements
+from zope.interface import implementer
 
 import pyramid.testing
 import pyramid.request
@@ -54,7 +56,7 @@ class ExpandoRequest(object):
         except AttributeError:
             self.__dict__[attr] = value
 
-
+@implementer(IAuthenticationPolicy)
 class StubAuthenticationPolicy(object):
     """Authentication policy taking creds from request headers.
 
@@ -62,8 +64,6 @@ class StubAuthenticationPolicy(object):
     X-Username header, checks that it matches the password provided in
     the X-Password header, and returns that as the userid.
     """
-
-    implements(IAuthenticationPolicy)
 
     def authenticated_userid(self, request):
         username = request.environ.get("HTTP_X_USERNAME")
@@ -142,8 +142,10 @@ class UserTestCase(TestCase):
         # Check that it rejects invalid Hawk ids.
         req = self.make_request()
         hawkauthlib.sign_request(req, tokenid, key)
+        # pylint: disable=E1101
         authz = req.environ["HTTP_AUTHORIZATION"]
         req.environ["HTTP_AUTHORIZATION"] = authz.replace(tokenid, "XXXXXX")
+        # pylint: enable=E1101
         with self.assertRaises(HTTPUnauthorized):
             req.authenticated_userid
         # And that the rejection gets raised when accessing request.user
@@ -175,7 +177,8 @@ class UserTestCase(TestCase):
         self.assertTrue(isinstance(policy2.secrets, DerivedSecrets))
 
     def test_that_hawkauth_can_use_per_node_hostname_secrets(self):
-        with tempfile.NamedTemporaryFile() as sf:
+        with tempfile.NamedTemporaryFile(mode='w+') as sf:
+            # pylint: disable=R0204,W0201
             # Write some secrets to a file.
             sf.write("http://host1.com,0001:secret11,0002:secret12\n")
             sf.write("https://host2.com,0001:secret21,0002:secret22\n")
@@ -194,7 +197,7 @@ class UserTestCase(TestCase):
             })
             id = tokenlib.make_token({"uid": 42, "node": req.host_url},
                                      secret="secret11")
-            key = tokenlib.get_token_secret(id, secret="secret11")
+            key = tokenlib.get_derived_secret(id, secret="secret11")
             hawkauthlib.sign_request(req, id, key)
             self.assertEquals(req.authenticated_userid, 42)
             # It should accept a request signed with the new secret on host1.
@@ -203,7 +206,7 @@ class UserTestCase(TestCase):
             })
             id = tokenlib.make_token({"uid": 42, "node": req.host_url},
                                      secret="secret12")
-            key = tokenlib.get_token_secret(id, secret="secret12")
+            key = tokenlib.get_derived_secret(id, secret="secret12")
             hawkauthlib.sign_request(req, id, key)
             self.assertEquals(req.authenticated_userid, 42)
             # It should reject a request signed with secret from other host.
@@ -212,7 +215,7 @@ class UserTestCase(TestCase):
             })
             id = tokenlib.make_token({"uid": 42, "node": req.host_url},
                                      secret="secret12")
-            key = tokenlib.get_token_secret(id, secret="secret12")
+            key = tokenlib.get_derived_secret(id, secret="secret12")
             hawkauthlib.sign_request(req, id, key)
             with self.assertRaises(HTTPUnauthorized):
                 req.authenticated_userid
@@ -222,7 +225,7 @@ class UserTestCase(TestCase):
             })
             id = tokenlib.make_token({"uid": 42, "node": req.host_url},
                                      secret="secret22")
-            key = tokenlib.get_token_secret(id, secret="secret22")
+            key = tokenlib.get_derived_secret(id, secret="secret22")
             hawkauthlib.sign_request(req, id, key)
             with self.assertRaises(HTTPUnauthorized):
                 req.authenticated_userid
@@ -233,7 +236,7 @@ class UserTestCase(TestCase):
             })
             id = tokenlib.make_token({"uid": 42, "node": req.host_url},
                                      secret="secret22")
-            key = tokenlib.get_token_secret(id, secret="secret22")
+            key = tokenlib.get_derived_secret(id, secret="secret22")
             hawkauthlib.sign_request(req, id, key)
             self.assertEquals(req.authenticated_userid, 42)
             # It should accept a request to host1 with an explicit port number.
@@ -245,7 +248,7 @@ class UserTestCase(TestCase):
             req.host_url = "http://host1.com:80"
             id = tokenlib.make_token({"uid": 42, "node": req.host_url[:-3]},
                                      secret="secret11")
-            key = tokenlib.get_token_secret(id, secret="secret11")
+            key = tokenlib.get_derived_secret(id, secret="secret11")
             hawkauthlib.sign_request(req, id, key)
             self.assertEquals(req.authenticated_userid, 42)
             # It should accept a request to host2 with an explicit port number.
@@ -257,7 +260,7 @@ class UserTestCase(TestCase):
             req.host_url = "https://host2.com:443"
             id = tokenlib.make_token({"uid": 42, "node": req.host_url[:-4]},
                                      secret="secret22")
-            key = tokenlib.get_token_secret(id, secret="secret22")
+            key = tokenlib.get_derived_secret(id, secret="secret22")
             hawkauthlib.sign_request(req, id, key)
             self.assertEquals(req.authenticated_userid, 42)
             # It should accept a request to host3 on a custom port.
@@ -267,7 +270,7 @@ class UserTestCase(TestCase):
             })
             id = tokenlib.make_token({"uid": 42, "node": req.host_url},
                                      secret="secret32")
-            key = tokenlib.get_token_secret(id, secret="secret32")
+            key = tokenlib.get_derived_secret(id, secret="secret32")
             hawkauthlib.sign_request(req, id, key)
             self.assertEquals(req.authenticated_userid, 42)
             # It should reject unknown hostnames.
@@ -276,7 +279,7 @@ class UserTestCase(TestCase):
             })
             id = tokenlib.make_token({"uid": 42, "node": req.host_url},
                                      secret="secret12")
-            key = tokenlib.get_token_secret(id, secret="secret12")
+            key = tokenlib.get_derived_secret(id, secret="secret12")
             hawkauthlib.sign_request(req, id, key)
             with self.assertRaises(HTTPUnauthorized):
                 req.authenticated_userid
@@ -300,19 +303,20 @@ class UserTestCase(TestCase):
             req.authenticated_userid
 
 
-class TestMemcachedNonceCache(unittest2.TestCase):
+class TestMemcachedNonceCache(unittest.TestCase):
 
     def setUp(self):
-        global MEMCACHED
+        global MEMCACHED  # pylint: disable=W0603
         if MEMCACHED is None:
             try:
-                MemcachedClient().get("")
+                # Control/space characters not allowed in python-memcache
+                MemcachedClient().get(b"x")
             except BackendError:
                 MEMCACHED = False
             else:
                 MEMCACHED = True
         if not MEMCACHED:
-            raise unittest2.SkipTest("no memcache")
+            raise unittest.SkipTest("no memcache")
         self.nc = None
         self.keys_to_delete = set()
 
@@ -342,7 +346,7 @@ class TestMemcachedNonceCache(unittest2.TestCase):
         try:
             self.assertTrue(nc.check_nonce(ts, "abc"))
         except BackendError:
-            raise unittest2.SkipTest("no memcache")
+            raise unittest.SkipTest("no memcache")
         # After that check, the (ts, nonce) pair should be stale.
         # Changing either the ts or the nonce will make it fresh.
         self.assertFalse(nc.check_nonce(ts, "abc"))
@@ -353,7 +357,7 @@ class TestMemcachedNonceCache(unittest2.TestCase):
         self.assertFalse(nc.check_nonce(now() + window + 1, "abc"))
 
 
-class TestPermissiveNonceCache(unittest2.TestCase):
+class TestPermissiveNonceCache(unittest.TestCase):
 
     def test_permissiveness(self):
         nc = PermissiveNonceCache()

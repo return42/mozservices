@@ -2,19 +2,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# pylint: disable=R0204
+
 import os
 import sys
-import unittest2
-import urlparse
-
+import unittest
 from pyramid.request import Request
 from pyramid.interfaces import IRequestFactory
 
 from webtest import TestApp
-from wsgiproxy.app import WSGIProxyApp
 
 from mozsvc.config import get_configurator
 
+from six.moves import urllib
 
 def get_test_configurator(root, ini_file="tests.ini"):
     """Find a file with testing settings, turn it into a configurator."""
@@ -59,7 +59,7 @@ def make_request(config, path="/", environ=None, factory=None):
     return request
 
 
-class TestCase(unittest2.TestCase):
+class TestCase(unittest.TestCase):
     """TestCase with some generic helper methods."""
 
     def setUp(self):
@@ -75,7 +75,7 @@ class TestCase(unittest2.TestCase):
         # Load config from the .ini file.
         if not hasattr(self, "ini_file"):
             if hasattr(self, "TEST_INI_FILE"):
-                self.ini_file = self.TEST_INI_FILE
+                self.ini_file = self.TEST_INI_FILE # pylint: disable=E1101
             else:
                 # The file to use may be specified in the environment.
                 self.ini_file = os.environ.get("MOZSVC_TEST_INI_FILE",
@@ -116,11 +116,13 @@ class FunctionalTestCase(TestCase):
         else:
             self.distant = True
             self.host_url = test_remote
+            # FIXME: WSGIProxy is not Py3 compliant
+            from wsgiproxy.app import WSGIProxyApp
             application = WSGIProxyApp(test_remote)
             # Explicitly commit so that calling code can introspect the config.
             self.config.commit()
 
-        host_url = urlparse.urlparse(self.host_url)
+        host_url = urllib.parse.urlparse(self.host_url)
         self.app = TestApp(application, extra_environ={
             "HTTP_HOST": host_url.netloc,
             "wsgi.url_scheme": host_url.scheme or "http",

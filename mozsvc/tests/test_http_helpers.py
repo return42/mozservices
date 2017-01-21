@@ -3,9 +3,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# pylint: disable=W1505,W0612,W0613
+
 import unittest
-from six.moves import urllib
 import socket
+
+from six.moves import urllib
+from six import StringIO
+
 from mozsvc.http_helpers import get_url, proxy
 
 
@@ -24,10 +29,10 @@ class TestHttp(unittest.TestCase):
 
     def setUp(self):
         self.oldopen = urllib.request.urlopen
-        urllib.urlopen = self._urlopen
+        urllib.request.urlopen = self._urlopen
 
     def tearDown(self):
-        urllib.urlopen = self.oldopen
+        urllib.request.urlopen = self.oldopen
 
     def _urlopen(self, req, timeout=None):
         url = req.get_full_url()
@@ -35,23 +40,23 @@ class TestHttp(unittest.TestCase):
             raise ValueError()
         if url == 'http://dwqkndwqpihqdw.com':
             msg = 'Name or service not known'
-            raise urllib.URLError(socket.gaierror(-2, msg))
+            raise urllib.error.URLError(socket.gaierror(-2, msg))
 
         if url in ('http://google.com', 'http://goodauth'):
             return FakeResult()
         if url == 'http://badauth':
-            raise urllib.HTTPError(url, 401, '', {}, None)
+            raise urllib.error.HTTPError(url, 401, '', {}, StringIO() )
         if url == 'http://timeout':
-            raise urllib.URLError(socket.timeout())
+            raise urllib.error.URLError(socket.timeout())
         if url == 'http://error':
-            raise urllib.HTTPError(url, 500, 'Error', {}, None)
+            raise urllib.error.HTTPError(url, 500, 'Error', {}, StringIO())
         if url == 'http://newplace':
             res = FakeResult()
             res.body = url + ' ' + req.headers['Authorization']
             return res
         if url == 'http://xheaders':
             res = FakeResult()
-            headers = req.headers.items()
+            headers = list(req.headers.items())
             headers.sort()
             res.body = str(headers)
             return res
@@ -67,12 +72,12 @@ class TestHttp(unittest.TestCase):
         code, headers, body = get_url('http://dwqkndwqpihqdw.com',
                                       get_body=False)
         self.assertEquals(code, 502)
-        self.assertTrue('Name or service not known' in body)
+        self.assertTrue(b'Name or service not known' in body)
 
         # any page
         code, headers, body = get_url('http://google.com', get_body=False)
         self.assertEquals(code, 200)
-        self.assertEquals(body, '')
+        self.assertEquals(body, b'')
 
         # page with auth failure
         code, headers, body = get_url('http://badauth',
@@ -82,8 +87,8 @@ class TestHttp(unittest.TestCase):
 
         # page with right auth
         code, headers, body = get_url('http://goodauth',
-                                      user='tarek',
-                                      password='passat76')
+                                      user=b'tarek',
+                                      password=b'passat76')
         self.assertEquals(code, 200)
         self.assertEquals(body, '{}')
 
@@ -108,10 +113,10 @@ class TestHttp(unittest.TestCase):
         request = FakeRequest()
         response = proxy(request, 'http', 'newplace')
         self.assertEqual(response.content_length, 31)
-        self.assertEqual(response.body, 'http://newplace Basic SomeToken')
+        self.assertEqual(response.body, b'http://newplace Basic SomeToken')
 
         # we want to make sure that X- headers are proxied
         request = FakeRequest()
         response = proxy(request, 'http', 'xheaders')
-        self.assertTrue("('X-me-that', 2), ('X-me-this', 1)" in response.body)
-        self.assertTrue("X-forwarded-for" in response.body)
+        self.assertTrue(b"('X-me-that', 2), ('X-me-this', 1)" in response.body)
+        self.assertTrue(b"X-forwarded-for" in response.body)

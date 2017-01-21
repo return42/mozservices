@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# pylint: disable=W1505,W0612,W0613,C0103
+
 import unittest
 
 import pyramid.testing
@@ -10,6 +12,7 @@ from pyramid.response import Response
 from mozsvc.exceptions import BackendError
 from mozsvc.tests.support import make_request
 
+import six
 
 class TestErrorHandlingTweens(unittest.TestCase):
 
@@ -90,7 +93,7 @@ class TestBackoffResponseTween(unittest.TestCase):
         # that had backoff headers, and the number that had unavailable errors.
         backoff_count = 0
         unavail_count = 0
-        for _ in xrange(count):
+        for _ in six.moves.range(count):
             r = self._do_request("/")
             self.assertTrue(r.status_int in (200, 503))
             if r.status_int == 503:

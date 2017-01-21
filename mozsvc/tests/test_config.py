@@ -5,14 +5,13 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 # ***** END LICENSE BLOCK *****
 
+# pylint: disable=W1505,W0612,W0613,R0204
+
 import unittest
 import tempfile
 import os
 
-try:
-    from StringIO import StringIO
-except ImportError:
-    from io import StringIO
+from six import StringIO
 
 from mozsvc.config import (Config, SettingsDict, load_into_settings,
                            get_configurator)
@@ -120,11 +119,11 @@ class ConfigTestCase(unittest.TestCase):
         self.assertEquals(config.get('one', 'env'), 'some stuff')
 
         # getting a map
-        map = config.get_map()
-        self.assertEquals(map['one.foo'], 'bar')
+        _map = config.get_map()
+        self.assertEquals(_map['one.foo'], 'bar')
 
-        map = config.get_map('one')
-        self.assertEquals(map['foo'], 'bar')
+        _map = config.get_map('one')
+        self.assertEquals(_map['foo'], 'bar')
 
         # extends
         self.assertEquals(config.get('three', 'more'), 'stuff')
