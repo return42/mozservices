@@ -40,7 +40,7 @@ class MemcachedClient(object):
 
     """
 
-    def __init__(self, server=None, key_prefix="", pool_size=None,
+    def __init__(self, server=None, key_prefix=b"", pool_size=0,
                  pool_timeout=60, max_key_size=None, max_value_size=None,
                  **kwds):
         if "servers" in kwds:
@@ -162,7 +162,7 @@ class MemcachedClient(object):
         data, flags = self._encode_value(value)
         with self._connect() as mc:
             res = mc.set(key, data, _time, flags)
-        if res != "STORED":
+        if res is not True:
             return False
         return True
 
@@ -172,7 +172,7 @@ class MemcachedClient(object):
         data, flags = self._encode_value(value)
         with self._connect() as mc:
             res = mc.add(key, data, _time, flags)
-        if res != "STORED":
+        if res is not True:
             return False
         return True
 
@@ -182,7 +182,7 @@ class MemcachedClient(object):
         data, flags = self._encode_value(value)
         with self._connect() as mc:
             res = mc.replace(key, data, _time, flags)
-        if res != "STORED":
+        if res is not True:
             return False
         return True
 
@@ -197,7 +197,7 @@ class MemcachedClient(object):
                 res = mc.add(key, data, _time, flags)
             else:
                 res = mc.cas(key, data, casid, _time, flags)
-        if res != "STORED":
+        if res is not True:
             return False
         return True
 
@@ -238,7 +238,7 @@ class MCClientPool(object):
 
     """
 
-    def __init__(self, server, maxsize=None, timeout=60):
+    def __init__(self, server, maxsize=0, timeout=60):
         self.server = server
         self.maxsize = maxsize
         self.timeout = timeout
@@ -265,8 +265,7 @@ class MCClientPool(object):
 
     def _create_client(self):
         """Create a new Client object."""
-        client = memcache.Client(self.server)
-        client.connect()
+        client = memcache.Client([self.server], debug=False)
         return client
 
     def _checkout_client(self):
@@ -277,7 +276,7 @@ class MCClientPool(object):
         are no objects left in the pool
         """
         # If there's no maxsize, no need to block waiting for a connection.
-        blocking = (self.maxsize is not None)
+        blocking = (self.maxsize != 0)
         # Loop until we get a non-stale connection, or we create a new one.
         while True:
             try:
@@ -296,8 +295,7 @@ class MCClientPool(object):
                 if ts + self.timeout > now:
                     return ts, client
                 # Otherwise, the connection is stale.
-                # Close it, push an empty slot onto the queue, and retry.
-                client.disconnect()
+                # Push an empty slot onto the queue, and retry.
                 self.clients.put(EMPTY_SLOT)
                 continue
 
@@ -305,10 +303,9 @@ class MCClientPool(object):
         """Return a Client object to the pool."""
         # If the connection is now stale, don't return it to the pool.
         # Push an empty slot instead so that it will be refreshed when needed.
-        if client.is_connected():
-            now = int(time.time())
-            if time_stamp + self.timeout > now:
-                self.clients.put((time_stamp, client))
-            else:
-                if self.maxsize is not None:
-                    self.clients.put(EMPTY_SLOT)
+        now = int(time.time())
+        if time_stamp + self.timeout > now:
+            self.clients.put((time_stamp, client))
+        else:
+            if self.maxsize != 0:
+                self.clients.put(EMPTY_SLOT)
