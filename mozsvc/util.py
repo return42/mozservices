@@ -67,42 +67,6 @@ def maybe_resolve_name(name_or_object, package=None):
     """
     return DottedNameResolver(package).maybe_resolve(name_or_object)
 
-
-def dnslookup(url):
-    """Replaces a hostname by its IP in an url.
-
-    Uses gethostbyname to do a DNS lookup, so the nscd cache is used.
-
-    If gevent has patched the standard library, makes sure it uses the
-    original version because gevent uses its own mechanism based on
-    the async libevent's evdns_resolve_ipv4, which does not use
-    glibc's resolver.
-    """
-    try:
-        from gevent.socket import _socket
-        gethostbyname = _socket.gethostbyname
-    except ImportError:
-        gethostbyname = socket.gethostbyname
-
-    # parsing
-    parsed_url = urllib.parse.urlparse(url)
-    host, port = urllib.parse.splitport(parsed_url.netloc)
-    user, host = urllib.parse.splituser(host)
-
-    # resolving the host
-    host = gethostbyname(host)
-
-    # recomposing
-    if port is not None:
-        host = '%s:%s' % (host, port)
-
-    if user is not None:
-        host = '%s@%s' % (user, host)
-
-    parts = [parsed_url[0]] + [host] + list(parsed_url[2:])
-    return urllib.parse.urlunparse(parts)
-
-
 class JsonLogFormatter(logging.Formatter):
     """Log formatter that outputs machine-readable json.
 
