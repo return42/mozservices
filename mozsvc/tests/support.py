@@ -46,6 +46,7 @@ def make_request(config, path="/", environ=None, factory=None):
     my_environ["REQUEST_METHOD"] = "GET"
     my_environ["SCRIPT_NAME"] = ""
     my_environ["PATH_INFO"] = path
+    my_environ["SERVER_PROTOCOL"] = "HTTP/1.0",
     my_environ["SERVER_NAME"] = "localhost"
     my_environ["SERVER_PORT"] = "5000"
     if environ is not None:
