@@ -67,7 +67,7 @@ class Secrets(object):
                 for line, row in enumerate(reader):
                     if len(row) < 2:
                         continue
-                    node = six.b(row[0])
+                    node = six.u(row[0])
                     if node in self._secrets:
                         raise ValueError("Duplicate node line %d" % line)
                     secrets = []
@@ -87,13 +87,15 @@ class Secrets(object):
             writer = csv.writer(f, delimiter=',')
             for node, secrets in self._secrets.items():
                 secrets = [ '%s:%s' % (ts.decode(), s.decode()) for ts, s in secrets]
-                secrets.insert(0, node.decode())
+                secrets.insert(0, node)
                 writer.writerow(secrets)
 
     def get(self, node):
+        node = six.u(node)
         return [secret for timestamp, secret in self._secrets[node]]
 
     def add(self, node, size=256):
+        node = six.u(node)
         timestamp = six.b(str(int(time.time())))
         secret = binascii.b2a_hex(os.urandom(size))[:size]
         # The new secret *must* sort at the end of the list.
@@ -149,9 +151,12 @@ class DerivedSecrets(object):
     def __init__(self, master_secrets):
         if isinstance(master_secrets, six.string_types):
             master_secrets = master_secrets.split()
-        self._master_secrets = master_secrets
+        # master secret has to be byte-string in Py2 & Py2
+        self._master_secrets = [six.b(s) for s in master_secrets]
 
     def get(self, node):
+        # node has to be byte-string in Py2 & Py2
+        node = six.b(node)
         hkdf_params = {
             "salt": None,
             "info": self.HKDF_INFO_NODE_SECRET + node,
