@@ -14,8 +14,6 @@ import traceback
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-from six.moves import urllib
-
 from pyramid.util import DottedNameResolver
 
 
