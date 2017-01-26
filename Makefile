@@ -2,6 +2,8 @@
 
 .DEFAULT = help
 
+# python version to use
+PY       ?=3
 # list of python packages (folders) or modules (files) of this build
 PYOBJECTS = mozsvc
 # folder where the python distribution takes place
@@ -9,11 +11,11 @@ PYDIST   ?= dist
 # folder where the python intermediate build files take place
 PYBUILD  ?= build
 
-SYSTEMPYTHON = `which python3 python | head -n 1`
+SYSTEMPYTHON = `which python$(PY) python | head -n 1`
 VIRTUALENV   = virtualenv --python=$(SYSTEMPYTHON)
 VTENV_OPTS   = "--no-site-packages"
 
-ENV     = ./local
+ENV     = ./local/py$(PY)
 ENV_BIN = $(ENV)/bin
 
 
