@@ -24,8 +24,8 @@ wsgiproxy
 
 # develop
 
-coverage
-nose
+pytest
+pytest-cov
 pip
 pylint
 tox
