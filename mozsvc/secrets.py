@@ -91,7 +91,6 @@ class Secrets(object):
                 writer.writerow(secrets)
 
     def get(self, node):
-        node = six.u(node)
         return [secret for timestamp, secret in self._secrets[node]]
 
     def add(self, node, size=256):
@@ -151,7 +150,7 @@ class DerivedSecrets(object):
     def __init__(self, master_secrets):
         if isinstance(master_secrets, six.string_types):
             master_secrets = master_secrets.split()
-        # master secret has to be byte-string in Py2 & Py2
+        # master secret has to be byte-string in Py2 & Py3
         self._master_secrets = [six.b(s) for s in master_secrets]
 
     def get(self, node):
