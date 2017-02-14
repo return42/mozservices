@@ -118,8 +118,8 @@ class FunctionalTestCase(TestCase):
             self.distant = True
             self.host_url = test_remote
             # FIXME: WSGIProxy is not Py3 compliant
-            from wsgiproxy.app import WSGIProxyApp
-            application = WSGIProxyApp(test_remote)
+            from wsgiproxy import HostProxy
+            application = HostProxy(test_remote)
             # Explicitly commit so that calling code can introspect the config.
             self.config.commit()
 

@@ -4,7 +4,7 @@
 import time
 import unittest
 
-from webtest import TestApp
+import webtest
 from testfixtures import LogCapture
 import pyramid.testing
 from pyramid.request import Request, Response
@@ -36,7 +36,7 @@ class TestMetrics(unittest.TestCase):
             config.include("cornice")
             config.include("mozsvc")
             register_service_views(config, stub_service)
-            app = TestApp(config.make_wsgi_app())
+            app = webtest.TestApp(config.make_wsgi_app())
             res = app.get("/stub")
             self.assertEquals(res.body, b"{}")
 
@@ -128,7 +128,7 @@ class TestMetrics(unittest.TestCase):
             config.include("cornice")
             config.include("mozsvc")
             register_service_views(config, stub_service)
-            app = TestApp(config.make_wsgi_app())
+            app = webtest.TestApp(config.make_wsgi_app())
 
             app.get("/ok", status=200)
             r = self.logs.records[-1]

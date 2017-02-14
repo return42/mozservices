@@ -35,7 +35,8 @@ python-memcached
 cornice
 testfixtures
 webtest
-wsgiproxy
+WSGIProxy2
+
 
 # --------------
 # develop

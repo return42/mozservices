@@ -34,17 +34,17 @@ REQUIRES = ['gevent'
             , 'tokenlib >= 2.0.0rc1'
             , 'hawkauthlib >= 2.0.0rc1'
             , 'pyramid_hawkauth >= 2.0.0rc1'
+            , 'python-memcached'
             # , 'meliae' FIXME: not py3 compliant!
             , ]
 
 EXTRAS_REQUIRE = {
-    'memcache'  : ['python-memcached']
     # https://github.com/pypa/pip/issues/1197
-    , 'test'    : [ 'cornice'
-                    , 'testfixtures'
-                    , 'webtest'
-                    , 'wsgiproxy'
-                    , ]
+    'test'     : [ 'cornice'
+                   , 'testfixtures'
+                   , 'webtest'
+                   , 'wsgiproxy2'
+                   , ]
 }
 
 META_FILE        = read_file('mozsvc/__init__.py')
