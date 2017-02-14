@@ -1,9 +1,22 @@
+# --------
 # requires
+# --------
 
-git+https://github.com/return42/konfig@six#egg=konfig             # konfig >= 2.0
-git+https://github.com/return42/tokenlib@six#egg=tokenlib         # tokenlib >= 2.0
-git+https://github.com/return42/hawkauthlib@six#egg=hawkauthlib   # hawkauthlib >= 2.0
-git+https://github.com/return42/pyramid_hawkauth@six#egg=pyramid_hawkauth   # pyramid_hawkauth >= 2.0
+-e file:../konfig#egg=konfig
+# konfig >= 2.0
+# git+https://github.com/return42/konfig@six#egg=konfig
+
+-e file:../tokenlib#egg=tokenlib
+# tokenlib >= 2.0
+# git+https://github.com/return42/tokenlib@six#egg=tokenlib
+
+-e file:../hawkauthlib#egg=hawkauthlib
+# hawkauthlib >= 2.0
+# git+https://github.com/return42/hawkauthlib@six#egg=hawkauthlib
+
+-e file:../pyramid_hawkauth#egg=pyramid_hawkauth
+# pyramid_hawkauth >= 2.0
+# git+https://github.com/return42/pyramid_hawkauth@six#egg=pyramid_hawkauth
 
 gevent
 greenlet
@@ -15,14 +28,18 @@ webob
 
 python-memcached
 
+# --------------
 # tests_requires
+# --------------
 
 cornice
 testfixtures
 webtest
 wsgiproxy
 
+# --------------
 # develop
+# --------------
 
 pytest
 pytest-cov

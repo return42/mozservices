@@ -37,13 +37,15 @@ REQUIRES = ['gevent'
             # , 'meliae' FIXME: not py3 compliant!
             , ]
 
-EXTRAS_REQUIRE = { 'memcache': ['python-memcached']}
-
-TESTS_REQUIRES = [ 'cornice'
-                   , 'testfixtures'
-                   , 'webtest'
-                   , 'wsgiproxy'
-                   , ]
+EXTRAS_REQUIRE = {
+    'memcache'  : ['python-memcached']
+    # https://github.com/pypa/pip/issues/1197
+    , 'test'    : [ 'cornice'
+                    , 'testfixtures'
+                    , 'webtest'
+                    , 'wsgiproxy'
+                    , ]
+}
 
 META_FILE        = read_file('mozsvc/__init__.py')
 LONG_DESCRIPTION = [ read_file(n) for n in ['README.rst', 'CHANGES.txt']]
@@ -62,7 +64,6 @@ setup(name                   = NAME
       , install_requires     = REQUIRES
       , extras_require       = EXTRAS_REQUIRE
       # unfortunately test is not supported by pip (only 'setup.py test')
-      , tests_require        = TESTS_REQUIRES
       , test_suite           = NAME # "pyramid_hawkauth.tests"
       , zip_safe             = False
       , classifiers          = [
